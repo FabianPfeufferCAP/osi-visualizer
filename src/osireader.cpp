@@ -72,58 +72,58 @@ void OsiReader::StartReadFile(const QString& osiFileName, const DataType dataTyp
     QString errMsg = SetupConnection(true);
     bool success = errMsg.isEmpty();
 
-    if (success)
+    if(!success)
     {
-        QFileInfo fInfo(osiFileName);
-        if (fInfo.exists())
+        emit Disconnected(errMsg);
+        return;
+    }
+
+    QFileInfo fInfo(osiFileName);
+    if (fInfo.exists())
+    {
+        osiFileName_ = osiFileName;
+        osiHeaderName_ = osiFileName + "h";  //.txth is header file
+
+        if (QFileInfo::exists(osiHeaderName_))
         {
-            osiFileName_ = osiFileName;
-            osiHeaderName_ = osiFileName + "h";  //.txth is header file
-
-            if (QFileInfo::exists(osiHeaderName_))
-            {
-                ReadHeader();
-            }
-            else
-            {
-                QFileInfo fPath(fInfo.path());
-
-                if (fPath.isDir() && fPath.isWritable())
-                {
-                    success = CreateHeader(errMsg);
-                }
-                else
-                {
-                    success = false;
-                    errMsg = "No access right to header file: " + osiHeaderName_ + "!\n";
-                }
-            }
-
-            if (success)
-            {
-                isPaused_ = false;
-                isRunning_ = true;
-                iterStamp_ = stamp2Offset_.begin();
-
-                isConnected_ = true;
-                emit Connected(currentDataType_);
-
-                // update slider range in millisecond level
-                uint64_t sliderRange = (stamp2Offset_.crbegin()->first) / 1000000;
-                emit UpdateSliderRange(sliderRange);
-
-                QtConcurrent::run(this, &OsiReader::SendMessageLoop);
-            }
+            ReadHeader();
         }
         else
         {
-            success = false;
-            errMsg = "File: " + osiFileName + " doesn't exist! \n";
+            QFileInfo fPath(fInfo.path());
+
+            if (fPath.isDir() && fPath.isWritable())
+            {
+                success = CreateHeader(errMsg);
+            }
+            else
+            {
+                success = false;
+                errMsg = "No access right to header file: " + osiHeaderName_ + "!\n";
+            }
+        }
+
+        if (success)
+        {
+            isPaused_ = false;
+            isRunning_ = true;
+            iterStamp_ = stamp2Offset_.begin();
+
+            isConnected_ = true;
+            emit Connected(currentDataType_);
+
+            // update slider range in millisecond level
+            uint64_t sliderRange = (stamp2Offset_.crbegin()->first) / 1000000;
+            emit UpdateSliderRange(sliderRange);
+
+            QtConcurrent::run(this, &OsiReader::SendMessageLoop);
         }
     }
-
-    if (!success)
-        emit Disconnected(errMsg);
+    else
+    {
+        success = false;
+        errMsg = "File: " + osiFileName + " doesn't exist! \n";
+    }
 }
 
 void OsiReader::StopReadFile()
@@ -518,7 +518,8 @@ void OsiReader::SendMessageLoop()
                         int ret = fread(&size, sizeof(message_size_t), 1, fd);
                         if (ret == 0) {
                             std::cout << "End of trace" << std::endl;
-                            break;
+                            std::cout << "Restarting from the beginning" << std::endl;
+                            fseek(fd, 0, SEEK_SET);
                         } else if (ret != 1) {
                             std::cout << "Failed to read the size of the message" << std::endl;
                             is_ok = 0;
@@ -677,7 +678,6 @@ void OsiReader::SendMessageLoop()
         }
 
     inputFile.close();
-    
     }
     isReadTerminated_ = true;
 }
