@@ -1950,6 +1950,14 @@
     <string>Combine Channels</string>
    </property>
   </action>
+  <action name="actionMergeCh">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Merge channels</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <tabstops>
