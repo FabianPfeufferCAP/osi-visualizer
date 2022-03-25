@@ -78,8 +78,8 @@ void GLWidget::initializeGL()
 {
     if (!initializeOpenGLFunctions())
     {
-        qDebug() << "failed to initialize OpenGL functions";
-        return;
+        qDebug() << "failed to initialize OpenGL functions! Please make sure that OpenGL 4.3 is available on your system!";
+        exit(1);
     }
     // Disabling the depth test.
     // We are simulating a plain 2D world, thus all elements have the same y value.
